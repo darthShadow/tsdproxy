@@ -144,7 +144,15 @@ func (pm *ProxyManager) SetupProxy(ctx context.Context, containerID string) {
 
 	// Create the reverse proxy
 	//
-	reverseProxy := httputil.NewSingleHostReverseProxy(targetURL)
+	reverseProxy := &httputil.ReverseProxy{
+		Rewrite: func(r *httputil.ProxyRequest) {
+			r.SetURL(targetURL)
+			r.Out.Host = r.In.Host
+
+			r.Out.Header["X-Forwarded-For"] = r.In.Header["X-Forwarded-For"]
+			r.SetXForwarded()
+		},
+	}
 
 	// Create the tsnet server
 	//
