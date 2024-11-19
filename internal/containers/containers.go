@@ -19,6 +19,7 @@ const (
 	// Container config labels
 	LabelEnable        = LabelPrefix + "enable"
 	LabelName          = LabelPrefix + "name"
+	LabelContainerIP   = LabelPrefix + "container_ip"
 	LabelContainerPort = LabelPrefix + "container_port"
 	LabelEphemeral     = LabelPrefix + "ephemeral"
 	LabelWebClient     = LabelPrefix + "webclient"
@@ -89,9 +90,24 @@ func (c *Container) GetPort() (string, bool) {
 }
 
 func (c *Container) getTargetHostname(hostname string) string {
+	// If Label is defined, get the container IP
+	//
+	if customContainerIP, ok := c.Info.Config.Labels[LabelContainerIP]; ok && customContainerIP != "" {
+		return customContainerIP
+	}
+
 	// return container IP address if defined
 	if len(c.Info.NetworkSettings.IPAddress) > 0 {
 		return c.Info.NetworkSettings.IPAddress
+	}
+
+	// return the first IP address of the container
+	if len(c.Info.NetworkSettings.Networks) > 0 {
+		for _, network := range c.Info.NetworkSettings.Networks {
+			if len(network.IPAddress) > 0 {
+				return network.IPAddress
+			}
+		}
 	}
 
 	// return localhost if container same as host to serve the dashboard
